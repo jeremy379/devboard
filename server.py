@@ -36,6 +36,19 @@ def load_env():
 PORT = int(load_env().get("PORT", 8765))
 
 
+def load_user_data():
+    if USER_DATA_FILE.exists():
+        try:
+            return json.loads(USER_DATA_FILE.read_text())
+        except Exception:
+            pass
+    return {"notes": {}, "labels": {}, "known_labels": [], "links": []}
+
+
+def save_user_data(data):
+    USER_DATA_FILE.write_text(json.dumps(data, indent=2, ensure_ascii=False))
+
+
 def fetch_prs(github_org):
     result = subprocess.run(
         [
@@ -50,6 +63,23 @@ def fetch_prs(github_org):
     )
     if result.returncode != 0:
         raise RuntimeError(f"gh CLI error: {result.stderr.strip()}")
+    return json.loads(result.stdout)
+
+
+def fetch_prs_to_review(github_org):
+    result = subprocess.run(
+        [
+            "gh", "search", "prs",
+            "--review-requested", "@me",
+            "--state", "open",
+            "--json", "number,title,repository,url",
+            "--limit", "50",
+            f"org:{github_org}",
+        ],
+        capture_output=True, text=True, cwd=str(DIR),
+    )
+    if result.returncode != 0:
+        return []
     return json.loads(result.stdout)
 
 
@@ -181,9 +211,12 @@ def build_data(prs_raw, email, token, github_org, jira_base_url):
 
     return {
         "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "github_org": github_org,
+        "jira_base_url": jira_base_url,
         "tickets": result_tickets,
         "no_ticket": no_ticket,
         "no_pr_tickets": no_pr_tickets,
+        "prs_to_review": fetch_prs_to_review(github_org),
     }
 
 
