@@ -1,0 +1,7 @@
+.env
+user_data.json
+__pycache__/
+data.json
+
+demo/*.mov
+*.giftify

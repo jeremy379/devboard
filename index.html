@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{APP_NAME}}</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>{{APP_EMOJI}}</text></svg>" />
+  <style>
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --surface2: #21262d;
+      --border: #30363d;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --accent: #58a6ff;
+
+      --status-inprogress-bg: #1f2d3d;
+      --status-inprogress-text: #58a6ff;
+      --status-review-bg: #2d1f3d;
+      --status-review-text: #bc8cff;
+      --status-qa-bg: #1f3d2d;
+      --status-qa-text: #3fb950;
+      --status-done-bg: #1f3d1f;
+      --status-done-text: #56d364;
+
+      --draft-bg: #2d2208;
+      --draft-text: #d29922;
+      --active-bg: #0d2d1f;
+      --active-text: #3fb950;
+
+      --warn-bg: #3d1f1f;
+      --warn-text: #f85149;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      padding: 32px 24px;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 32px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 16px;
+    }
+
+    header h1 {
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    header h1 span {
+      color: var(--muted);
+      font-weight: 400;
+    }
+
+    #meta {
+      font-size: 12px;
+      color: var(--muted);
+      text-align: right;
+    }
+
+    #meta strong {
+      color: var(--text);
+    }
+
+    .ticket-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+
+    .ticket-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+
+    .jira-key {
+      font-size: 12px;
+      font-weight: 600;
+      font-family: monospace;
+      color: var(--accent);
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .jira-key:hover { text-decoration: underline; }
+
+    .jira-title {
+      flex: 1;
+      font-weight: 500;
+      min-width: 0;
+    }
+
+    .status-badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 12px;
+      white-space: nowrap;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .status-badge.inprogress  { background: var(--status-inprogress-bg); color: var(--status-inprogress-text); }
+    .status-badge.review      { background: var(--status-review-bg);     color: var(--status-review-text); }
+    .status-badge.qa          { background: var(--status-qa-bg);         color: var(--status-qa-text); }
+    .status-badge.done        { background: var(--status-done-bg);       color: var(--status-done-text); }
+
+    .warning-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: var(--warn-bg);
+      color: var(--warn-text);
+      font-size: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .pr-list {
+      padding: 8px 0;
+    }
+
+    .pr-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .pr-row:last-child { border-bottom: none; }
+
+    .pr-badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 12px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .pr-badge.draft    { background: var(--draft-bg);  color: var(--draft-text); }
+    .pr-badge.active   { background: var(--active-bg); color: var(--active-text); }
+    .pr-badge.approved { background: #1a4429; color: #3fb950; }
+
+    .pr-repo {
+      font-size: 11px;
+      font-family: monospace;
+      color: var(--muted);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .pr-number {
+      font-size: 11px;
+      color: var(--muted);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .pr-title {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .pr-link {
+      color: var(--text);
+      text-decoration: none;
+      font-size: 13px;
+    }
+    .pr-link:hover { color: var(--accent); }
+
+    .note-section {
+      border-top: 1px solid var(--border);
+      padding: 10px 14px 12px;
+      background: #0d1117;
+    }
+    .note-section textarea {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 12px;
+      line-height: 1.6;
+      padding: 8px 10px;
+      resize: vertical;
+      min-height: 60px;
+      transition: border-color 0.15s;
+      box-sizing: border-box;
+    }
+    .note-section textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .note-section textarea::placeholder { color: #484f58; }
+    .note-meta {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 5px;
+      min-height: 16px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .note-saved { color: #3fb950; }
+
+    .group-section { }
+    .group-section:first-child .group-header { margin-top: 0; }
+    .group-header {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin: 20px 0 8px;
+      padding-left: 2px;
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .group-header:hover { color: var(--fg); }
+    .group-chevron {
+      display: inline-block;
+      transition: transform 0.2s;
+      font-style: normal;
+    }
+    .group-section.collapsed .group-chevron { transform: rotate(-90deg); }
+    .group-body { }
+    .group-section.collapsed .group-body { display: none; }
+    .ticket-labels {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex-wrap: wrap;
+      margin-left: 4px;
+    }
+    .label-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 2px 7px;
+      border-radius: 12px;
+      white-space: nowrap;
+      cursor: default;
+    }
+    .label-tag button {
+      background: none;
+      border: none;
+      color: inherit;
+      opacity: 0.6;
+      cursor: pointer;
+      font-size: 12px;
+      padding: 0;
+      line-height: 1;
+    }
+    .label-tag button:hover { opacity: 1; }
+    .add-label-btn {
+      background: none;
+      border: 1px dashed var(--border);
+      color: var(--muted);
+      border-radius: 12px;
+      font-size: 11px;
+      padding: 1px 7px;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+      line-height: 1.6;
+    }
+    .add-label-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .label-input-row {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 16px 8px;
+      border-top: 1px solid var(--border);
+      background: #0d1117;
+    }
+    .label-input-row.open { display: flex; }
+    .label-input-row input {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 12px;
+      padding: 4px 8px;
+      width: 200px;
+      transition: border-color 0.15s;
+    }
+    .label-input-row input:focus { outline: none; border-color: var(--accent); }
+    .label-input-row input::placeholder { color: #484f58; }
+    .label-input-hint { font-size: 11px; color: var(--muted); }
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 13px;
+      font-family: inherit;
+      padding: 6px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+      white-space: nowrap;
+    }
+    #refresh-btn:hover:not(:disabled) {
+      background: #30363d;
+      border-color: #8b949e;
+    }
+    #refresh-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    #refresh-btn .spinner {
+      display: none;
+      width: 12px; height: 12px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+    #refresh-btn.loading .spinner { display: block; }
+    #refresh-btn.loading .btn-icon { display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #refresh-error {
+      display: none;
+      margin-top: 12px;
+      padding: 10px 14px;
+      background: var(--warn-bg);
+      border: 1px solid #f85149;
+      border-radius: 6px;
+      color: var(--warn-text);
+      font-size: 12px;
+    }
+
+    .stats {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    .stat {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 20px;
+      text-align: center;
+      min-width: 100px;
+    }
+    .stat-value { font-size: 24px; font-weight: 700; color: var(--accent); }
+    .stat-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    .bookmarks {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px 12px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .bookmark-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 3px 8px 3px 10px;
+      color: var(--accent);
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .bookmark-link:hover { border-color: var(--accent); }
+    .bookmark-remove {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 13px;
+      padding: 0 2px;
+      line-height: 1;
+    }
+    .bookmark-remove:hover { color: var(--warn-text); }
+    .bookmark-add-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      background: none;
+      border: 1px dashed var(--border);
+      border-radius: 6px;
+      padding: 3px 10px;
+      color: var(--muted);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .bookmark-add-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .bookmark-form {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .bookmark-form input {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 12px;
+      padding: 3px 8px;
+      font-family: inherit;
+    }
+    .bookmark-form input:focus { outline: none; border-color: var(--accent); }
+    .bookmark-form input::placeholder { color: #484f58; }
+    .bookmark-form-ok {
+      font-size: 12px;
+      background: var(--accent);
+      color: #0d1117;
+      border: none;
+      border-radius: 6px;
+      padding: 3px 10px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .bookmark-form-cancel {
+      font-size: 12px;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 3px 10px;
+      color: var(--muted);
+      cursor: pointer;
+    }
+
+    .global-notes {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    .global-notes-header {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      padding: 10px 14px 0;
+    }
+    .global-notes textarea {
+      width: 100%;
+      background: transparent;
+      border: none;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 13px;
+      line-height: 1.6;
+      padding: 8px 14px;
+      resize: vertical;
+      min-height: 72px;
+      box-sizing: border-box;
+    }
+    .global-notes textarea:focus { outline: none; }
+    .global-notes textarea::placeholder { color: #484f58; }
+    .global-notes-footer {
+      font-size: 11px;
+      color: var(--muted);
+      padding: 0 14px 8px;
+      min-height: 20px;
+    }
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 20px;
+      text-align: center;
+      min-width: 100px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>{{APP_EMOJI}} {{APP_NAME}}</h1>
+  <div style="display:flex;align-items:center;gap:16px">
+    <div id="meta">Loading…</div>
+    <button id="refresh-btn" title="Re-fetch from GitHub & Jira">
+      <span class="spinner"></span>
+      <span class="btn-icon">↻</span>
+      Refresh
+    </button>
+  </div>
+</header>
+
+<div id="refresh-error"></div>
+
+<div id="bookmarks" class="bookmarks"></div>
+
+<div class="global-notes">
+  <div class="global-notes-header">📝 Notes</div>
+  <textarea id="global-notes-ta" placeholder="Write anything…"></textarea>
+  <div class="global-notes-footer"><span id="global-notes-status"></span></div>
+</div>
+
+<div class="stats" id="stats"></div>
+<div id="tickets"></div>
+
+<script>
+  // ── Helpers ──────────────────────────────────────────────────────────────
+
+  function statusClass(s) {
+    const map = { 'In Progress':'inprogress','In Review':'review','In review':'review',
+                  'Ready For QA':'qa','Done':'done','Submitted':'review',
+                  'Selected for development':'inprogress' };
+    return map[s] || 'inprogress';
+  }
+
+  function renderPR(pr) {
+    const approved = pr.approved;
+    const cls = approved ? 'approved' : (pr.draft ? 'draft' : 'active');
+    const lbl = approved ? '✓ Approved' : (pr.draft ? 'Draft' : 'Active');
+    return '<div class="pr-row">' +
+      '<span class="pr-badge ' + cls + '">' + lbl + '</span>' +
+      '<span class="pr-repo">' + pr.repo + '</span>' +
+      '<span class="pr-number">#' + pr.number + '</span>' +
+      '<span class="pr-title"><a class="pr-link" href="' + pr.url + '" target="_blank">' + pr.title + '</a></span>' +
+      '</div>';
+  }
+
+  const LABEL_PALETTE = [
+    { bg:'#1f2d3d', text:'#58a6ff' },
+    { bg:'#2d1f3d', text:'#bc8cff' },
+    { bg:'#0d2d1f', text:'#3fb950' },
+    { bg:'#2d2208', text:'#d29922' },
+    { bg:'#3d1f1f', text:'#f85149' },
+    { bg:'#1f3d30', text:'#56d364' },
+    { bg:'#2d1a0d', text:'#f0883e' },
+  ];
+
+  function labelColor(label) {
+    let h = 0;
+    for (let i = 0; i < label.length; i++) h = (Math.imul(31, h) + label.charCodeAt(i)) | 0;
+    return LABEL_PALETTE[Math.abs(h) % LABEL_PALETTE.length];
+  }
+
+  // ── User data (server-side file DB) ──────────────────────────────────────
+
+  let UD = { notes: {}, labels: {}, known_labels: [], links: [] };
+
+  async function loadUserData() {
+    try {
+      const r = await fetch('/user-data');
+      UD = await r.json();
+      // Migrate notes from localStorage if any
+      const legacy = localStorage.getItem('devboard-task-notes');
+      if (legacy) {
+        const old = JSON.parse(legacy);
+        let migrated = false;
+        for (const [k, v] of Object.entries(old)) {
+          if (!UD.notes[k]) { UD.notes[k] = v; migrated = true; }
+        }
+        if (migrated) { await saveUserData(); localStorage.removeItem('devboard-task-notes'); }
+      }
+    } catch {
+      // Server not reachable — fall back to localStorage
+      try { UD.notes = JSON.parse(localStorage.getItem('devboard-task-notes') || '{}'); } catch {}
+    }
+  }
+
+  async function saveUserData() {
+    try {
+      await fetch('/user-data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(UD),
+      });
+    } catch {
+      localStorage.setItem('devboard-task-notes', JSON.stringify(UD.notes));
+    }
+  }
+
+  // ── Notes ─────────────────────────────────────────────────────────────────
+
+  function renderNoteSection(key) {
+    const note = UD.notes[key];
+    const hasNote = note && note.text && note.text.trim();
+    const dateStr = hasNote ? new Date(note.updated_at).toLocaleString('en-GB', { dateStyle:'short', timeStyle:'short' }) : '';
+    const savedSpan = hasNote ? '<span class="note-saved">\u2713 saved \u00b7 ' + dateStr + '</span>' : '';
+    const textVal = hasNote ? note.text.replace(/&/g,'&amp;').replace(/</g,'&lt;') : '';
+    return '<div class="note-section" data-note-key="' + key + '">' +
+      '<textarea placeholder="Add a note\u2026" data-note-key="' + key + '">' + textVal + '</textarea>' +
+      '<div class="note-meta"><span class="note-status">' + savedSpan + '</span></div>' +
+      '</div>';
+  }
+
+  let noteSaveTimers = {};
+  document.addEventListener('input', e => {
+    const ta = e.target.closest('textarea[data-note-key]');
+    if (!ta) return;
+    const key = ta.dataset.noteKey;
+    const statusEl = ta.closest('.note-section').querySelector('.note-status');
+    statusEl.innerHTML = '<span style="color:var(--muted)">\u2026</span>';
+    clearTimeout(noteSaveTimers[key]);
+    noteSaveTimers[key] = setTimeout(async () => {
+      const text = ta.value;
+      if (text.trim()) {
+        UD.notes[key] = { text, updated_at: new Date().toISOString() };
+      } else {
+        delete UD.notes[key];
+      }
+      await saveUserData();
+      const d = new Date().toLocaleString('en-GB', { dateStyle:'short', timeStyle:'short' });
+      statusEl.innerHTML = text.trim() ? '<span class="note-saved">\u2713 saved \u00b7 ' + d + '</span>' : '';
+    }, 600);
+  });
+
+  // ── Labels ────────────────────────────────────────────────────────────────
+
+  function renderLabels(key) {
+    const labels = UD.labels[key] || [];
+    const tags = labels.map(l => {
+      const c = labelColor(l);
+      return '<span class="label-tag" style="background:' + c.bg + ';color:' + c.text + '">' +
+        l + '<button data-action="remove-label" data-key="' + key + '" data-label="' + l.replace(/"/g,'&quot;') + '">\u00d7</button>' +
+        '</span>';
+    }).join('');
+    return '<div class="ticket-labels" id="tlabels-' + key + '">' +
+      tags +
+      '<button class="add-label-btn" data-action="open-label" data-key="' + key + '">+</button>' +
+      '</div>';
+  }
+
+  function renderLabelInput(key) {
+    return '<div class="label-input-row" id="linput-' + key + '">' +
+      '<input type="text" list="known-labels-dl" placeholder="Project label\u2026" data-key="' + key + '" autocomplete="off" />' +
+      '<span class="label-input-hint">Enter \u21b5 to add \u00b7 Esc to cancel</span>' +
+      '</div>' +
+      '<datalist id="known-labels-dl"></datalist>';
+  }
+
+  function refreshDatalist() {
+    document.querySelectorAll('#known-labels-dl').forEach(dl => {
+      dl.innerHTML = UD.known_labels.map(l => '<option value="' + l.replace(/"/g,'&quot;') + '">').join('');
+    });
+  }
+
+  function refreshLabelTags(key) {
+    const el = document.getElementById('tlabels-' + key);
+    if (!el) return;
+    const labels = UD.labels[key] || [];
+    const tags = labels.map(l => {
+      const c = labelColor(l);
+      return '<span class="label-tag" style="background:' + c.bg + ';color:' + c.text + '">' +
+        l + '<button data-action="remove-label" data-key="' + key + '" data-label="' + l.replace(/"/g,'&quot;') + '">\u00d7</button>' +
+        '</span>';
+    }).join('');
+    el.innerHTML = tags + '<button class="add-label-btn" data-action="open-label" data-key="' + key + '">+</button>';
+  }
+
+  async function addLabel(key, label) {
+    label = label.trim();
+    if (!label) return;
+    if (!UD.labels[key]) UD.labels[key] = [];
+    if (UD.labels[key].includes(label)) return;
+    UD.labels[key].push(label);
+    if (!UD.known_labels.includes(label)) UD.known_labels.push(label);
+    await saveUserData();
+    refreshLabelTags(key);
+    refreshDatalist();
+  }
+
+  async function removeLabel(key, label) {
+    if (!UD.labels[key]) return;
+    UD.labels[key] = UD.labels[key].filter(l => l !== label);
+    if (UD.labels[key].length === 0) delete UD.labels[key];
+    await saveUserData();
+    refreshLabelTags(key);
+  }
+
+  document.addEventListener('click', e => {
+    const action = e.target.dataset.action || e.target.closest('[data-action]')?.dataset.action;
+    const btn = e.target.dataset.action ? e.target : e.target.closest('[data-action]');
+    if (!btn) return;
+    const key = btn.dataset.key;
+
+    if (action === 'open-label') {
+      const row = document.getElementById('linput-' + key);
+      if (!row) return;
+      row.classList.add('open');
+      row.querySelector('input').focus();
+    }
+    if (action === 'remove-label') {
+      removeLabel(key, btn.dataset.label);
+    }
+  });
+
+  document.addEventListener('keydown', e => {
+    const input = e.target.closest('.label-input-row input');
+    if (!input) return;
+    const key = input.dataset.key;
+    const row = document.getElementById('linput-' + key);
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addLabel(key, input.value);
+      input.value = '';
+      row.classList.remove('open');
+    }
+    if (e.key === 'Escape') {
+      input.value = '';
+      row.classList.remove('open');
+    }
+  });
+
+  // ── Rendering ─────────────────────────────────────────────────────────────
+
+  // DATA — updated by Copilot on refresh
+
+  function renderTicketCard(ticket, showPRs) {
+    const sc = statusClass(ticket.jira_status);
+    const warning = ticket.warning ? '<div class="warning-bar">\u26a0\ufe0f ' + ticket.warning + '</div>' : '';
+    const prs = showPRs && ticket.prs ? '<div class="pr-list">' + ticket.prs.map(renderPR).join('') + '</div>' : '';
+    return '<div class="ticket-card">' +
+      '<div class="ticket-header">' +
+        '<a class="jira-key" href="' + ticket.jira_url + '" target="_blank">' + ticket.jira_key + '</a>' +
+        '<span class="jira-title">' + ticket.jira_title + '</span>' +
+        renderLabels(ticket.jira_key) +
+        '<span class="status-badge ' + sc + '">' + ticket.jira_status + '</span>' +
+      '</div>' +
+      renderLabelInput(ticket.jira_key) +
+      warning +
+      prs +
+      renderNoteSection(ticket.jira_key) +
+      '</div>';
+  }
+
+  const COLLAPSE_KEY = 'devboard-group-collapsed';
+
+  function getCollapsed() {
+    try { return JSON.parse(localStorage.getItem(COLLAPSE_KEY) || '{}'); } catch { return {}; }
+  }
+
+  function setCollapsed(state) {
+    localStorage.setItem(COLLAPSE_KEY, JSON.stringify(state));
+  }
+
+  function renderWithGroupHeaders(tickets, showPRs) {
+    const collapsed = getCollapsed();
+    // Group tickets by label
+    const groups = [];
+    let current = null;
+    sortByLabel(tickets).forEach(t => {
+      const label = (UD.labels[t.jira_key] || [])[0] || '';
+      if (!current || current.label !== label) {
+        current = { label, tickets: [] };
+        groups.push(current);
+      }
+      current.tickets.push(t);
+    });
+
+    return groups.map(g => {
+      const key = g.label || '__no_project__';
+      const isCollapsed = !!collapsed[key];
+      const cards = g.tickets.map(t => renderTicketCard(t, showPRs)).join('');
+      return '<div class="group-section' + (isCollapsed ? ' collapsed' : '') + '" data-group-key="' + key + '">' +
+        '<div class="group-header"><i class="group-chevron">▾</i>' + (g.label || 'No project') + '</div>' +
+        '<div class="group-body">' + cards + '</div>' +
+        '</div>';
+    }).join('');
+  }
+
+  document.addEventListener('click', function(e) {
+    const header = e.target.closest('.group-header');
+    if (!header) return;
+    const section = header.closest('.group-section');
+    if (!section) return;
+    const key = section.dataset.groupKey;
+    section.classList.toggle('collapsed');
+    const collapsed = getCollapsed();
+    if (section.classList.contains('collapsed')) {
+      collapsed[key] = true;
+    } else {
+      delete collapsed[key];
+    }
+    setCollapsed(collapsed);
+  });
+
+  function sortByLabel(tickets) {
+    return [...tickets].sort((a, b) => {
+      const la = (UD.labels[a.jira_key] || [])[0] || '';
+      const lb = (UD.labels[b.jira_key] || [])[0] || '';
+      if (la && !lb) return -1;   // labeled first
+      if (!la && lb) return 1;
+      if (la && lb) return la.localeCompare(lb);  // group same label together
+      return 0;
+    });
+  }
+
+  function render(data) {
+    const date = new Date(data.generated_at);
+    document.getElementById('meta').innerHTML =
+      'Last refreshed<br><strong>' + date.toLocaleString('en-GB', { dateStyle:'medium', timeStyle:'short' }) + '</strong>';
+
+    // Convert no_ticket PRs into fake ticket objects
+    const fakeTickets = (data.no_ticket || []).map(pr => ({
+      jira_key: 'NO_JIRA_' + pr.number,
+      jira_title: pr.title,
+      jira_status: '',
+      jira_url: null,
+      prs: [pr]
+    }));
+
+    // Merge all tickets into one list
+    const allTickets = [...data.tickets, ...(data.no_pr_tickets || []).map(t => ({ ...t, prs: t.prs || [] })), ...fakeTickets];
+
+    let totalPRs = 0, draftCount = 0, activeCount = 0;
+    allTickets.forEach(t => (t.prs || []).forEach(p => { totalPRs++; p.draft ? draftCount++ : activeCount++; }));
+
+    document.getElementById('stats').innerHTML =
+      '<div class="stat"><div class="stat-value">' + allTickets.length + '</div><div class="stat-label">Jira Tickets</div></div>' +
+      '<div class="stat"><div class="stat-value">' + totalPRs + '</div><div class="stat-label">Open PRs</div></div>' +
+      '<div class="stat"><div class="stat-value">' + activeCount + '</div><div class="stat-label">Active PRs</div></div>' +
+      '<div class="stat"><div class="stat-value">' + draftCount + '</div><div class="stat-label">Draft PRs</div></div>';
+
+    document.getElementById('tickets').innerHTML = renderWithGroupHeaders(allTickets, true);
+
+    refreshDatalist();
+  }
+
+  // ── Bookmarks ─────────────────────────────────────────────────────────────
+
+  function renderBookmarks() {
+    const container = document.getElementById('bookmarks');
+    const links = UD.links || [];
+    const chips = links.map((lk, i) =>
+      '<a class="bookmark-link" href="' + lk.url + '" target="_blank">' + lk.title +
+      '</a><button class="bookmark-remove" data-idx="' + i + '" title="Remove">\u00d7</button>'
+    ).join('');
+    container.innerHTML = chips +
+      '<button class="bookmark-add-btn" id="bookmark-add-btn">+ Add link</button>';
+  }
+
+  document.addEventListener('click', async function(e) {
+    // Remove bookmark
+    if (e.target.classList.contains('bookmark-remove')) {
+      const idx = parseInt(e.target.dataset.idx);
+      UD.links.splice(idx, 1);
+      await saveUserData();
+      renderBookmarks();
+      return;
+    }
+    // Open add form
+    if (e.target.id === 'bookmark-add-btn') {
+      const btn = e.target;
+      btn.replaceWith((() => {
+        const form = document.createElement('span');
+        form.className = 'bookmark-form';
+        form.innerHTML =
+          '<input id="bm-url" type="url" placeholder="https://…" style="width:200px" />' +
+          '<input id="bm-title" type="text" placeholder="Title" style="width:120px" />' +
+          '<button class="bookmark-form-ok" id="bm-ok">Add</button>' +
+          '<button class="bookmark-form-cancel" id="bm-cancel">Cancel</button>';
+        return form;
+      })());
+      document.getElementById('bm-url').focus();
+      return;
+    }
+    // Confirm add
+    if (e.target.id === 'bm-ok') {
+      const url = document.getElementById('bm-url').value.trim();
+      const title = document.getElementById('bm-title').value.trim() || url;
+      if (url) {
+        UD.links = UD.links || [];
+        UD.links.push({ url, title });
+        await saveUserData();
+      }
+      renderBookmarks();
+      return;
+    }
+    // Cancel add
+    if (e.target.id === 'bm-cancel') {
+      renderBookmarks();
+      return;
+    }
+  });
+
+  // Submit form on Enter
+  document.addEventListener('keydown', async function(e) {
+    if (e.key === 'Enter' && (e.target.id === 'bm-url' || e.target.id === 'bm-title')) {
+      document.getElementById('bm-ok')?.click();
+    }
+    if (e.key === 'Escape' && document.getElementById('bm-cancel')) {
+      renderBookmarks();
+    }
+  });
+
+  const GLOBAL_NOTE_KEY = '__global__';
+
+  Promise.all([
+    loadUserData(),
+    fetch('/data.json').then(r => r.json())
+  ]).then(([_, data]) => {
+    render(data);
+    renderBookmarks();
+    // Restore global note
+    const gNote = UD.notes[GLOBAL_NOTE_KEY];
+    if (gNote) {
+      document.getElementById('global-notes-ta').value = gNote.text;
+      const d = new Date(gNote.updated_at).toLocaleString('en-GB', { dateStyle:'short', timeStyle:'short' });
+      document.getElementById('global-notes-status').innerHTML = '<span class="note-saved">\u2713 saved \u00b7 ' + d + '</span>';
+    }
+  });
+
+  let globalNoteTimer;
+  document.getElementById('global-notes-ta').addEventListener('input', function() {
+    const statusEl = document.getElementById('global-notes-status');
+    statusEl.innerHTML = '<span style="color:var(--muted)">\u2026</span>';
+    clearTimeout(globalNoteTimer);
+    globalNoteTimer = setTimeout(async () => {
+      const text = this.value;
+      if (text.trim()) {
+        UD.notes[GLOBAL_NOTE_KEY] = { text, updated_at: new Date().toISOString() };
+      } else {
+        delete UD.notes[GLOBAL_NOTE_KEY];
+      }
+      await saveUserData();
+      const d = new Date().toLocaleString('en-GB', { dateStyle:'short', timeStyle:'short' });
+      statusEl.innerHTML = text.trim() ? '<span class="note-saved">\u2713 saved \u00b7 ' + d + '</span>' : '';
+    }, 600);
+  });
+
+  function doRefresh() {
+    const btn = document.getElementById('refresh-btn');
+    const errEl = document.getElementById('refresh-error');
+    btn.disabled = true;
+    btn.classList.add('loading');
+    errEl.style.display = 'none';
+    fetch('/refresh', { method: 'POST' })
+      .then(r => r.json())
+      .then(res => { if (res.ok) location.reload(); else throw new Error(res.error || 'Unknown error'); })
+      .catch(err => {
+        btn.disabled = false;
+        btn.classList.remove('loading');
+        errEl.style.display = 'block';
+        errEl.textContent = '\u26a0\ufe0f Refresh failed: ' + err.message;
+      });
+  }
+
+  document.getElementById('refresh-btn').addEventListener('click', doRefresh);
+  setInterval(doRefresh, 15 * 60 * 1000);
+</script>
+</body>
+</html>
